@@ -528,24 +528,40 @@ def demo_scenario():
         with get_connection() as conn:
             conn.execute("DELETE FROM allocations")
             conn.execute("DELETE FROM audit_logs")
-            conn.execute("UPDATE tasks SET status = 'pending', assigned_employee_id = NULL")
+            conn.execute("UPDATE tasks SET status = 'pending', assigned_employee_id = NULL, completed_at = NULL")
             conn.execute("UPDATE employees SET availability = 'Available', workload = CASE name WHEN 'Arun' THEN 30 WHEN 'Priya' THEN 60 WHEN 'Kavi' THEN 40 WHEN 'Rahul' THEN 75 WHEN 'Meena' THEN 20 ELSE workload END")
+
+            critical_task = conn.execute("SELECT id FROM tasks WHERE name = ?", ("Network Failure",)).fetchone()
+            if critical_task:
+                critical_task_id = critical_task["id"]
+                conn.execute(
+                    "UPDATE tasks SET description = ?, required_skills = ?, priority = ?, sla_hours = ?, location = ?, status = 'pending', assigned_employee_id = NULL, completed_at = NULL WHERE id = ?",
+                    (
+                        "Critical outage in the Chennai network segment requiring urgent attention.",
+                        "Networking",
+                        "Critical",
+                        1,
+                        "Chennai",
+                        critical_task_id,
+                    ),
+                )
+            else:
+                critical_task_id = create_task(
+                    {
+                        "name": "Network Failure",
+                        "description": "Critical outage in the Chennai network segment requiring urgent attention.",
+                        "required_skills": "Networking",
+                        "priority": "Critical",
+                        "sla_hours": 1,
+                        "location": "Chennai",
+                    }
+                )
 
         for task in get_tasks():
             if task["status"] == "completed":
                 continue
             allocate_task(task["id"], trigger="Demo initial allocation")
 
-        critical_task_id = create_task(
-            {
-                "name": "Network Failure",
-                "description": "Critical outage in the Chennai network segment requiring urgent attention.",
-                "required_skills": "Networking",
-                "priority": "Critical",
-                "sla_hours": 1,
-                "location": "Chennai",
-            }
-        )
         allocate_task(critical_task_id, trigger="Demo critical event")
 
         employee = get_employee_by_id(1)

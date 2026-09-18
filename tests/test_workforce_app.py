@@ -1,13 +1,42 @@
+import importlib
 import os
+import tempfile
+from pathlib import Path
 
-from app import app
-from database import get_allocation_summary, get_connection, get_dashboard_summary, get_employees, get_tasks, init_db
-from allocation_engine import allocate_task, get_scenario_preview
+import pytest
 
 
-def setup_function():
-    os.environ.setdefault("SECRET_KEY", "test-secret")
-    init_db()
+@pytest.fixture(autouse=True)
+def isolated_database(monkeypatch):
+    test_db_path = Path(tempfile.mkdtemp()) / "test_workforce.db"
+    monkeypatch.setenv("SECRET_KEY", "test-secret")
+    monkeypatch.setenv("DATABASE_PATH", str(test_db_path))
+
+    import allocation_engine as allocation_engine_module
+    import app as app_module
+    import database as database_module
+
+    importlib.reload(database_module)
+    importlib.reload(allocation_engine_module)
+    importlib.reload(app_module)
+
+    globals()["app"] = app_module.app
+    globals()["get_connection"] = database_module.get_connection
+    globals()["get_dashboard_summary"] = database_module.get_dashboard_summary
+    globals()["get_employees"] = database_module.get_employees
+    globals()["get_tasks"] = database_module.get_tasks
+    globals()["init_db"] = database_module.init_db
+    globals()["create_employee"] = database_module.create_employee
+    globals()["create_task"] = database_module.create_task
+    globals()["get_allocation_summary"] = database_module.get_allocation_summary
+    globals()["get_task_by_id"] = database_module.get_task_by_id
+    globals()["get_employee_by_id"] = database_module.get_employee_by_id
+    globals()["mark_task_complete"] = database_module.mark_task_complete
+    globals()["allocate_task"] = allocation_engine_module.allocate_task
+    globals()["get_scenario_preview"] = allocation_engine_module.get_scenario_preview
+
+    database_module.init_db()
+    yield
 
 
 def test_dashboard_metrics_are_populated():
@@ -19,6 +48,27 @@ def test_dashboard_metrics_are_populated():
     summary = get_dashboard_summary()
     assert summary["total_employees"] >= 1
     assert summary["total_tasks"] >= 1
+
+
+def test_demo_seed_data_contains_canonical_tasks():
+    task_names = {task["name"] for task in get_tasks()}
+
+    assert "Server Failure" in task_names
+    assert "Network Failure" in task_names
+    assert "Database Backup" in task_names
+    assert "Security Audit" in task_names
+    assert "Application Testing" in task_names
+
+
+def test_demo_route_is_idempotent():
+    with app.test_client() as client:
+        first = client.post("/demo")
+        second = client.post("/demo")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    network_failures = [task["name"] for task in get_tasks() if task["name"] == "Network Failure"]
+    assert len(network_failures) == 1
 
 
 def test_allocation_returns_valid_assignment():
@@ -211,26 +261,26 @@ def test_init_db_removes_duplicate_employee_and_task_rows():
     with get_connection() as conn:
         conn.execute(
             "INSERT INTO employees (name, skills, workload, availability, location, performance) VALUES (?, ?, ?, ?, ?, ?)",
-            ("Duplicate Employee", "Testing", 20, "Available", "Chennai", 85),
+            ("Fixture Duplicate Employee", "Testing", 20, "Available", "Chennai", 85),
         )
         conn.execute(
             "INSERT INTO employees (name, skills, workload, availability, location, performance) VALUES (?, ?, ?, ?, ?, ?)",
-            ("Duplicate Employee", "Testing", 25, "Available", "Chennai", 90),
+            ("Fixture Duplicate Employee", "Testing", 25, "Available", "Chennai", 90),
         )
         conn.execute(
             "INSERT INTO tasks (name, description, required_skills, priority, sla_hours, location, status, deadline, workload_impact) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)",
-            ("Duplicate Task", "Dup task", "Testing", "High", 4, "Chennai", "2026-12-31 00:00:00", 20),
+            ("Fixture Duplicate Task", "Dup task", "Testing", "High", 4, "Chennai", "2026-12-31 00:00:00", 20),
         )
         conn.execute(
             "INSERT INTO tasks (name, description, required_skills, priority, sla_hours, location, status, deadline, workload_impact) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)",
-            ("Duplicate Task", "Dup task 2", "Testing", "High", 6, "Chennai", "2026-12-31 00:00:00", 20),
+            ("Fixture Duplicate Task", "Dup task 2", "Testing", "High", 6, "Chennai", "2026-12-31 00:00:00", 20),
         )
 
     init_db()
 
     with get_connection() as conn:
-        duplicate_employees = conn.execute("SELECT COUNT(*) FROM employees WHERE name = 'Duplicate Employee'").fetchone()[0]
-        duplicate_tasks = conn.execute("SELECT COUNT(*) FROM tasks WHERE name = 'Duplicate Task'").fetchone()[0]
+        duplicate_employees = conn.execute("SELECT COUNT(*) FROM employees WHERE name = 'Fixture Duplicate Employee'").fetchone()[0]
+        duplicate_tasks = conn.execute("SELECT COUNT(*) FROM tasks WHERE name = 'Fixture Duplicate Task'").fetchone()[0]
 
     assert duplicate_employees == 1
     assert duplicate_tasks == 1

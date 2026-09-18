@@ -60,6 +60,16 @@ def seed_task_data():
             "deadline": (now + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
         },
         {
+            "name": "Network Failure",
+            "description": "Critical outage in the Chennai network segment requiring urgent attention.",
+            "required_skills": "Networking",
+            "priority": "Critical",
+            "sla_hours": 1,
+            "location": "Chennai",
+            "status": "pending",
+            "deadline": (now + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
+        },
+        {
             "name": "Database Backup",
             "description": "Complete scheduled backup and validation for production databases.",
             "required_skills": "Database",

@@ -100,8 +100,61 @@ def init_db():
         )
 
     seed_default_data_if_empty()
+    cleanup_test_generated_records()
     cleanup_duplicate_records()
     cleanup_orphan_allocations()
+
+
+def cleanup_test_generated_records():
+    test_employee_names = (
+        "Duplicate Employee",
+        "Overloaded Employee",
+        "Repeat Completion",
+        "Task Sum Employee",
+        "Test Engineer",
+    )
+    test_task_names = (
+        "Impossible Task",
+        "Regression Check",
+        "Task A",
+        "Task B",
+        "Repeat Task",
+        "Unassigned Task",
+        "Additional Validation",
+        "Duplicate Task",
+    )
+
+    with get_connection() as conn:
+        employee_ids = conn.execute(
+            "SELECT id FROM employees WHERE name IN ({})".format(", ".join("?" for _ in test_employee_names)),
+            test_employee_names,
+        ).fetchall()
+        employee_id_values = [row["id"] for row in employee_ids]
+
+        if employee_id_values:
+            placeholders = ", ".join("?" for _ in employee_id_values)
+            conn.execute(f"DELETE FROM allocations WHERE employee_id IN ({placeholders})", employee_id_values)
+            conn.execute(f"UPDATE tasks SET assigned_employee_id = NULL WHERE assigned_employee_id IN ({placeholders})", employee_id_values)
+
+        task_ids = conn.execute(
+            "SELECT id FROM tasks WHERE name IN ({})".format(", ".join("?" for _ in test_task_names)),
+            test_task_names,
+        ).fetchall()
+        task_id_values = [row["id"] for row in task_ids]
+
+        if task_id_values:
+            placeholders = ", ".join("?" for _ in task_id_values)
+            conn.execute(f"DELETE FROM allocations WHERE task_id IN ({placeholders})", task_id_values)
+            conn.execute(f"UPDATE tasks SET assigned_employee_id = NULL WHERE id IN ({placeholders})", task_id_values)
+
+        conn.execute(
+            "DELETE FROM tasks WHERE name IN ({})".format(", ".join("?" for _ in test_task_names)),
+            test_task_names,
+        )
+        conn.execute(
+            "DELETE FROM employees WHERE name IN ({})".format(", ".join("?" for _ in test_employee_names)),
+            test_employee_names,
+        )
 
 
 def cleanup_duplicate_records():
@@ -159,11 +212,9 @@ def cleanup_duplicate_records():
 
 def seed_default_data_if_empty():
     with get_connection() as conn:
-        employee_count = conn.execute("SELECT COUNT(*) FROM employees").fetchone()[0]
-        task_count = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
-
-        if employee_count == 0:
-            for employee in seed_employee_data():
+        existing_employee_names = {row[0] for row in conn.execute("SELECT name FROM employees").fetchall()}
+        for employee in seed_employee_data():
+            if employee["name"] not in existing_employee_names:
                 conn.execute(
                     """
                     INSERT INTO employees (name, skills, workload, availability, location, performance)
@@ -178,9 +229,11 @@ def seed_default_data_if_empty():
                         employee["performance"],
                     ),
                 )
+                existing_employee_names.add(employee["name"])
 
-        if task_count == 0:
-            for task in seed_task_data():
+        existing_task_names = {row[0] for row in conn.execute("SELECT name FROM tasks").fetchall()}
+        for task in seed_task_data():
+            if task["name"] not in existing_task_names:
                 workload_impact = task_priority_workload(task.get("priority", "Medium"))
                 conn.execute(
                     """
@@ -199,6 +252,7 @@ def seed_default_data_if_empty():
                         workload_impact,
                     ),
                 )
+                existing_task_names.add(task["name"])
 
     try:
         from allocation_engine import allocate_all_tasks
