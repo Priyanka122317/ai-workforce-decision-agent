@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Scenario Simulator</h1>
+    <p>Preview high-impact operational changes without permanently altering the database until you apply them.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="panel-card">
+      <h3>Simulation Parameters</h3>
+      <form id="simulationForm" class="stack-form">
+        <div class="mb-3">
+          <label>Scenario type</label>
+          <select name="scenario_type" class="form-select" id="scenarioType">
+            <option value="employee_unavailable">Employee becomes unavailable</option>
+            <option value="new_critical_task">New critical task arrives</option>
+            <option value="workload_increase">Employee workload increases</option>
+            <option value="priority_change">Task priority changes</option>
+            <option value="sla_urgent">SLA becomes urgent</option>
+          </select>
+        </div>
+
+        <div class="mb-3 scenario-field" data-scenario="employee_unavailable workload_increase">
+          <label>Employee</label>
+          <select name="employee_id" class="form-select" id="employeeSelect">
+            {% for employee in employees %}
+            <option value="{{ employee.id }}">{{ employee.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3 scenario-field" data-scenario="new_critical_task">
+          <label>Task name</label>
+          <input type="text" name="name" class="form-control" value="Network Failure" />
+        </div>
+        <div class="mb-3 scenario-field" data-scenario="new_critical_task">
+          <label>Required skill</label>
+          <input type="text" name="required_skills" class="form-control" value="Networking" />
+        </div>
+        <div class="mb-3 scenario-field" data-scenario="new_critical_task">
+          <label>Location</label>
+          <input type="text" name="location" class="form-control" value="Chennai" />
+        </div>
+        <div class="mb-3 scenario-field" data-scenario="new_critical_task">
+          <label>SLA hours</label>
+          <input type="number" name="sla_hours" class="form-control" value="1" />
+        </div>
+
+        <div class="mb-3 scenario-field" data-scenario="workload_increase">
+          <label>Workload increase (%)</label>
+          <input type="number" name="workload_increase" class="form-control" id="workloadIncrease" min="1" max="100" step="1" value="15" />
+        </div>
+
+        <div class="mb-3 scenario-field" data-scenario="priority_change">
+          <label>Task</label>
+          <select name="task_id" class="form-select">
+            {% for task in tasks %}
+            <option value="{{ task.id }}">{{ task.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3 scenario-field" data-scenario="priority_change">
+          <label>New priority</label>
+          <select name="priority" class="form-select">
+            <option>Critical</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+
+        <div class="mb-3 scenario-field" data-scenario="sla_urgent">
+          <label>Task</label>
+          <select name="task_id" class="form-select">
+            {% for task in tasks %}
+            <option value="{{ task.id }}">{{ task.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3 scenario-field" data-scenario="sla_urgent">
+          <label>Urgent SLA hours</label>
+          <input type="number" name="sla_hours" class="form-control" value="1" />
+        </div>
+
+        <button type="button" class="btn btn-primary w-100 mb-2" id="runSimulationBtn">Run Simulation</button>
+        <button type="button" class="btn btn-success w-100" id="applySimulationBtn">Apply Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="panel-card">
+      <h3>Preview</h3>
+      <div id="simulationPreview" class="preview-box">
+        Select a scenario to model a new operational condition.
+      </div>
+      <input type="hidden" id="simulationPayload" value="{}" />
+    </div>
+  </div>
+</div>
+{% endblock %}

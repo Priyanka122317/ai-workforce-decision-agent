@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Audit Log</h1>
+    <p>Every AI action, reallocation, and workload change is recorded for traceability.</p>
+  </div>
+</div>
+
+<div class="panel-card">
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Event</th>
+        <th>Previous Assignment</th>
+        <th>New Assignment</th>
+        <th>Reason</th>
+        <th>Trigger</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.timestamp }}</td>
+        <td>{{ log.event }}</td>
+        <td>{{ log.previous_assignment or 'N/A' }}</td>
+        <td>{{ log.new_assignment or 'N/A' }}</td>
+        <td>{{ log.reason or 'No reason recorded.' }}</td>
+        <td>{{ log.trigger or 'Manual action' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

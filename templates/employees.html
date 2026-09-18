@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Employee Management</h1>
+    <p>Track skills, workload, availability, and historical performance.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="panel-card">
+      <h3>Add Employee</h3>
+      <form method="post" action="/employees" class="stack-form">
+        <div class="mb-3">
+          <label>Name</label>
+          <input type="text" name="name" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Skills</label>
+          <input type="text" name="skills" class="form-control" placeholder="Python, Database" required />
+        </div>
+        <div class="mb-3">
+          <label>Current workload (%)</label>
+          <input type="number" name="workload" class="form-control" min="0" max="100" value="0" required />
+        </div>
+        <div class="mb-3">
+          <label>Availability</label>
+          <select name="availability" class="form-select">
+            <option>Available</option>
+            <option>Busy</option>
+            <option>Unavailable</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Location</label>
+          <input type="text" name="location" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Historical performance (%)</label>
+          <input type="number" name="performance" class="form-control" min="0" max="100" value="85" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Save Employee</button>
+      </form>
+    </div>
+
+    <div class="panel-card mt-4">
+      <h3>Update Employee</h3>
+      <form method="post" action="/employees/1/edit" class="stack-form" id="employeeEditForm">
+        <div class="mb-3">
+          <label>Employee</label>
+          <select class="form-select" id="editEmployeeSelect">
+            {% for employee in employees %}
+            <option value="{{ employee.id }}">{{ employee.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Name</label>
+          <input type="text" name="name" class="form-control" id="editName" required />
+        </div>
+        <div class="mb-3">
+          <label>Skills</label>
+          <input type="text" name="skills" class="form-control" id="editSkills" required />
+        </div>
+        <div class="mb-3">
+          <label>Workload</label>
+          <input type="number" name="workload" class="form-control" id="editWorkload" min="0" max="100" required />
+        </div>
+        <div class="mb-3">
+          <label>Availability</label>
+          <select name="availability" class="form-select" id="editAvailability">
+            <option>Available</option>
+            <option>Busy</option>
+            <option>Unavailable</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Location</label>
+          <input type="text" name="location" class="form-control" id="editLocation" required />
+        </div>
+        <div class="mb-3">
+          <label>Performance</label>
+          <input type="number" name="performance" class="form-control" id="editPerformance" min="0" max="100" required />
+        </div>
+        <button type="submit" class="btn btn-warning w-100">Update Employee</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="panel-card">
+      <h3>Employees</h3>
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Skills</th>
+            <th>Workload</th>
+            <th>Availability</th>
+            <th>Location</th>
+            <th>Performance</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for employee in employees %}
+          <tr>
+            <td>{{ employee.name }}</td>
+            <td>{{ employee.skills }}</td>
+            <td>
+              <div class="progress compact-progress"><div class="progress-bar" style="width: {{ employee.workload }}%"></div></div>
+              {{ employee.workload }}%
+            </td>
+            <td><span class="badge bg-{{ 'success' if employee.availability == 'Available' else 'warning' if employee.availability == 'Busy' else 'danger' }}">{{ employee.availability }}</span></td>
+            <td>{{ employee.location }}</td>
+            <td>{{ employee.performance }}%</td>
+            <td>
+              <div class="d-flex gap-2">
+                <form method="post" action="/employee/{{ employee.id }}/availability" class="inline-form">
+                  <input type="hidden" name="availability" value="{{ 'Unavailable' if employee.availability == 'Available' else 'Available' }}" />
+                  <button type="submit" class="btn btn-sm btn-outline-secondary">{{ 'Set Unavailable' if employee.availability == 'Available' else 'Set Available' }}</button>
+                </form>
+                <form method="post" action="/employees/{{ employee.id }}/delete" class="inline-form">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const employeeMap = {{ employees | tojson }};
+  const employeeEditForm = document.getElementById('employeeEditForm');
+  const editEmployeeSelect = document.getElementById('editEmployeeSelect');
+  const editName = document.getElementById('editName');
+  const editSkills = document.getElementById('editSkills');
+  const editWorkload = document.getElementById('editWorkload');
+  const editAvailability = document.getElementById('editAvailability');
+  const editLocation = document.getElementById('editLocation');
+  const editPerformance = document.getElementById('editPerformance');
+
+  function populateEmployeeForm(id) {
+    const employee = employeeMap.find((item) => String(item.id) === String(id));
+    if (!employee) return;
+    editName.value = employee.name;
+    editSkills.value = employee.skills;
+    editWorkload.value = employee.workload;
+    editAvailability.value = employee.availability;
+    editLocation.value = employee.location;
+    editPerformance.value = employee.performance;
+    employeeEditForm.action = '/employees/' + id + '/edit';
+  }
+
+  if (editEmployeeSelect) {
+    editEmployeeSelect.addEventListener('change', function () {
+      populateEmployeeForm(this.value);
+    });
+    populateEmployeeForm(editEmployeeSelect.value);
+  }
+</script>
+{% endblock %}

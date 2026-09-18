@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Workforce Control Center</h1>
+    <p>AI-driven staffing decisions for changing operational conditions.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="allocateAllTasks()">AI Allocate Tasks</button>
+    <a class="btn btn-outline-primary" href="/tasks">Add New Task</a>
+    <a class="btn btn-outline-primary" href="/employees">Add Employee</a>
+    <a class="btn btn-outline-success" href="/scenarios">Simulate Scenario</a>
+    <a class="btn btn-outline-secondary" href="/audit">View Audit Log</a>
+    <button class="btn btn-warning" onclick="runDemoScenario()">Demo Scenario</button>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <span>Total Employees</span>
+    <h2>{{ total_employees }}</h2>
+  </div>
+  <div class="stat-card">
+    <span>Available Employees</span>
+    <h2>{{ available_employees }}</h2>
+  </div>
+  <div class="stat-card">
+    <span>Total Tasks</span>
+    <h2>{{ total_tasks }}</h2>
+  </div>
+  <div class="stat-card">
+    <span>Pending Tasks</span>
+    <h2>{{ pending_tasks }}</h2>
+  </div>
+  <div class="stat-card">
+    <span>Critical Tasks</span>
+    <h2>{{ critical_tasks }}</h2>
+  </div>
+  <div class="stat-card">
+    <span>SLA at Risk</span>
+    <h2>{{ sla_risk_tasks }}</h2>
+  </div>
+  <div class="stat-card">
+    <span>Current Allocations</span>
+    <h2>{{ current_allocations }}</h2>
+  </div>
+  <div class="stat-card ai-status">
+    <span>AI Agent Status</span>
+    <h2>{{ ai_status }}</h2>
+  </div>
+</div>
+
+<div class="alert-wrapper">
+  {% for alert in alerts %}
+  <div class="alert-card {{ alert.type.lower().replace(' ', '-') }}">
+    <strong>{{ alert.type }}</strong>
+    <p>{{ alert.text }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <h3>Employee Workload</h3>
+    <canvas id="workloadChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Tasks by Priority</h3>
+    <canvas id="priorityChart"></canvas>
+  </div>
+  <div class="chart-card wide-card">
+    <h3>Allocation Status</h3>
+    <canvas id="allocationChart"></canvas>
+  </div>
+</div>
+
+<script>
+  const workloadLabels = {{ employee_workload | map(attribute='name') | list | tojson }};
+  const workloadData = {{ employee_workload | map(attribute='workload') | list | tojson }};
+  const priorityLabels = {{ tasks_by_priority | map(attribute='priority') | list | tojson }};
+  const priorityData = {{ tasks_by_priority | map(attribute='count') | list | tojson }};
+
+  const workloadCtx = document.getElementById('workloadChart');
+  new Chart(workloadCtx, {
+    type: 'bar',
+    data: {
+      labels: workloadLabels,
+      datasets: [{
+        label: 'Workload %',
+        data: workloadData,
+        backgroundColor: ['#4f46e5', '#22c55e', '#10b981', '#f59e0b', '#ef4444']
+      }]
+    },
+    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } } }
+  });
+
+  const priorityCtx = document.getElementById('priorityChart');
+  new Chart(priorityCtx, {
+    type: 'doughnut',
+    data: {
+      labels: priorityLabels.length ? priorityLabels : ['No tasks'],
+      datasets: [{
+        data: priorityData.length ? priorityData : [1],
+        backgroundColor: ['#ef4444', '#f59e0b', '#38bdf8', '#22c55e']
+      }]
+    },
+    options: { responsive: true }
+  });
+
+  const allocationCtx = document.getElementById('allocationChart');
+  new Chart(allocationCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Allocated', 'Pending'],
+      datasets: [{
+        data: [{{ current_allocations }}, {{ pending_tasks }}],
+        backgroundColor: ['#4f46e5', '#94a3b8']
+      }]
+    },
+    options: { responsive: true }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Operational Alerts</h1>
+    <p>Critical resource and SLA signals derived from the live workforce state.</p>
+  </div>
+</div>
+
+<div class="panel-card">
+  {% if alerts %}
+    {% for alert in alerts %}
+      <div class="alert-card mb-3 border-start border-{{ 'danger' if alert.severity == 'Critical' else 'warning' if alert.severity == 'Warning' else 'info' }} border-4 rounded">
+        <div class="d-flex justify-content-between align-items-center">
+          <strong>{{ alert.type }}</strong>
+          <span class="badge bg-{{ 'danger' if alert.severity == 'Critical' else 'warning' if alert.severity == 'Warning' else 'info' }}">{{ alert.severity }}</span>
+        </div>
+        <p class="mb-0 mt-2">{{ alert.text }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">No active alerts.</div>
+  {% endif %}
+</div>
+{% endblock %}

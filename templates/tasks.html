@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Task Management</h1>
+    <p>Prioritize work by urgency, SLA, required skill, and location.</p>
+  </div>
+</div>
+
+{% if request.args.get('message') %}
+<div class="alert alert-success" role="alert">
+  {{ request.args.get('message') }}
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="panel-card">
+      <h3>Add Task</h3>
+      <form method="post" action="/tasks" class="stack-form">
+        <div class="mb-3">
+          <label>Task name</label>
+          <input type="text" name="name" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Description</label>
+          <textarea name="description" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label>Required skills</label>
+          <input type="text" name="required_skills" class="form-control" required />
+        </div>
+        <div class="mb-3">
+          <label>Priority</label>
+          <select name="priority" class="form-select">
+            <option>Critical</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>SLA / deadline hours</label>
+          <input type="number" name="sla_hours" class="form-control" min="1" value="4" required />
+        </div>
+        <div class="mb-3">
+          <label>Location</label>
+          <input type="text" name="location" class="form-control" required />
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Save Task</button>
+      </form>
+    </div>
+
+    <div class="panel-card mt-4">
+      <h3>Update Task</h3>
+      <form method="post" action="/tasks/1/edit" class="stack-form" id="taskEditForm">
+        <div class="mb-3">
+          <label>Task</label>
+          <select class="form-select" id="editTaskSelect">
+            {% for task in tasks %}
+            <option value="{{ task.id }}">{{ task.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>Task name</label>
+          <input type="text" name="name" class="form-control" id="editTaskName" required />
+        </div>
+        <div class="mb-3">
+          <label>Description</label>
+          <textarea name="description" class="form-control" id="editTaskDescription" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label>Required skills</label>
+          <input type="text" name="required_skills" class="form-control" id="editTaskSkills" required />
+        </div>
+        <div class="mb-3">
+          <label>Priority</label>
+          <select name="priority" class="form-select" id="editTaskPriority">
+            <option>Critical</option>
+            <option>High</option>
+            <option>Medium</option>
+            <option>Low</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label>SLA / deadline hours</label>
+          <input type="number" name="sla_hours" class="form-control" id="editTaskSla" min="1" required />
+        </div>
+        <div class="mb-3">
+          <label>Location</label>
+          <input type="text" name="location" class="form-control" id="editTaskLocation" required />
+        </div>
+        <button type="submit" class="btn btn-warning w-100">Update Task</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="panel-card">
+      <h3>Task Queue</h3>
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Required Skills</th>
+            <th>Priority</th>
+            <th>SLA</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for task in tasks %}
+          <tr>
+            <td>{{ task.name }}</td>
+            <td>{{ task.required_skills }}</td>
+            <td><span class="badge bg-{{ 'danger' if task.priority == 'Critical' else 'warning' if task.priority == 'High' else 'info' if task.priority == 'Medium' else 'secondary' }}">{{ task.priority }}</span></td>
+            <td>{{ task.sla_hours }}h</td>
+            <td>{{ task.location }}</td>
+            <td><span class="badge bg-{{ 'success' if task.status == 'completed' else 'primary' }}">{{ task.status }}</span></td>
+            <td>
+              <div class="d-flex gap-2">
+                <form method="post" action="/tasks/{{ task.id }}/complete" class="inline-form">
+                  <button type="submit" class="btn btn-sm btn-outline-success" {% if task.status == 'completed' %}disabled{% endif %}>Complete</button>
+                </form>
+                <form method="post" action="/tasks/{{ task.id }}/delete" class="inline-form">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const taskMap = {{ tasks | tojson }};
+  const taskEditForm = document.getElementById('taskEditForm');
+  const editTaskSelect = document.getElementById('editTaskSelect');
+  const editTaskName = document.getElementById('editTaskName');
+  const editTaskDescription = document.getElementById('editTaskDescription');
+  const editTaskSkills = document.getElementById('editTaskSkills');
+  const editTaskPriority = document.getElementById('editTaskPriority');
+  const editTaskSla = document.getElementById('editTaskSla');
+  const editTaskLocation = document.getElementById('editTaskLocation');
+
+  function populateTaskForm(id) {
+    const task = taskMap.find((item) => String(item.id) === String(id));
+    if (!task) return;
+    editTaskName.value = task.name;
+    editTaskDescription.value = task.description || '';
+    editTaskSkills.value = task.required_skills;
+    editTaskPriority.value = task.priority;
+    editTaskSla.value = task.sla_hours;
+    editTaskLocation.value = task.location;
+    taskEditForm.action = '/tasks/' + id + '/edit';
+  }
+
+  if (editTaskSelect) {
+    editTaskSelect.addEventListener('change', function () {
+      populateTaskForm(this.value);
+    });
+    populateTaskForm(editTaskSelect.value);
+  }
+</script>
+{% endblock %}

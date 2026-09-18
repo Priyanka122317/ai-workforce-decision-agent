@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>AI Allocation Decisions</h1>
+    <p>Transparent scoring and dynamic reallocation decisions based on operational constraints.</p>
+  </div>
+</div>
+
+<div class="panel-card">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Task</th>
+        <th>Employee</th>
+        <th>Priority</th>
+        <th>SLA</th>
+        <th>Location</th>
+        <th>Suitability</th>
+        <th>Reason</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if allocations %}
+        {% for allocation in allocations %}
+        <tr>
+          <td>{{ allocation.task_name }}</td>
+          <td>{{ allocation.employee_name }}</td>
+          <td><span class="badge bg-{{ 'danger' if allocation.priority == 'Critical' else 'warning' if allocation.priority == 'High' else 'info' }}">{{ allocation.priority }}</span></td>
+          <td>{{ allocation.sla_hours }}h</td>
+          <td>{{ allocation.location }}</td>
+          <td>{{ allocation.suitability_score }}%</td>
+          <td>
+            <button class="btn btn-sm btn-outline-dark reason-button" data-reason="{{ allocation.reason }}">View Reason</button>
+          </td>
+          <td><span class="badge bg-success">{{ allocation.status_label }}</span></td>
+          <td>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary reallocate-btn" data-task-id="{{ allocation.task_id }}">Reallocate</button>
+              <form method="post" action="/tasks/{{ allocation.task_id }}/complete">
+                <button type="submit" class="btn btn-sm btn-outline-success">Complete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-4">No allocation decisions available.</td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

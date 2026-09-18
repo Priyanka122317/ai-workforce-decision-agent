@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>System Settings</h1>
+    <p>Configure the deployment, optimization weights, and explanation provider behavior.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="panel-card">
+      <h3>Optimization Profile</h3>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">Skill match: 30%</li>
+        <li class="list-group-item">Availability: 20%</li>
+        <li class="list-group-item">Workload capacity: 15%</li>
+        <li class="list-group-item">Priority/SLA compatibility: 15%</li>
+        <li class="list-group-item">Location: 10%</li>
+        <li class="list-group-item">Historical performance: 10%</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="panel-card">
+      <h3>LLM Configuration</h3>
+      <p class="text-muted">The application supports optional LLM explanations when an API key is configured. If no key is available, deterministic reasoning remains active.</p>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item">Provider: OpenAI-compatible / optional</li>
+        <li class="list-group-item">Model: configurable via environment</li>
+        <li class="list-group-item">API key: never committed to source control</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
